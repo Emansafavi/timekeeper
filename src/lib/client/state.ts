@@ -17,6 +17,7 @@ export const apiError = writable<string | null>(null);
 export async function requestJson<T>(url: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(url, {
     ...options,
+    cache: options.cache ?? 'no-store',
     headers: {
       'content-type': 'application/json',
       ...(options.headers || {})

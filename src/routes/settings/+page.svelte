@@ -1,12 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Archive, Bell, Pencil, Plus, RotateCcw, Save, X } from '@lucide/svelte';
+  import { Archive, Bell, Globe2, Pencil, Plus, RotateCcw, Save, X } from '@lucide/svelte';
   import type { Profile } from '$lib/types';
   import { appState, mutate, refreshState } from '$lib/client/state';
 
   let reminderTime = '20:00';
   let notificationsEnabled = false;
   let allowOverlaps = false;
+  let timezone = 'UTC';
+  let deviceTimezone = 'UTC';
   let profileName = '';
   let profileColor = '#007aff';
   let profileCategory = '';
@@ -20,17 +22,19 @@
   $: archivedProfiles = $appState?.profiles.filter((profile) => profile.archived) || [];
 
   onMount(async () => {
+    deviceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     const state = await refreshState().catch(() => null);
     if (state) {
       reminderTime = state.settings.reminderTime;
       notificationsEnabled = state.settings.notificationsEnabled;
       allowOverlaps = state.settings.allowOverlaps;
+      timezone = state.settings.timezone || deviceTimezone;
     }
     if (typeof Notification !== 'undefined') permission = Notification.permission;
   });
 
   async function saveSettings() {
-    await mutate('/api/settings', { reminderTime, notificationsEnabled, allowOverlaps, firstRunComplete: true }, 'PATCH');
+    await mutate('/api/settings', { reminderTime, notificationsEnabled, allowOverlaps, timezone, firstRunComplete: true }, 'PATCH');
   }
 
   async function enableNotifications() {
@@ -90,6 +94,9 @@
       <label>Reminder time
         <input type="time" bind:value={reminderTime} />
       </label>
+      <label>Timezone
+        <input bind:value={timezone} placeholder={deviceTimezone} />
+      </label>
       <label>Overlapping entries
         <span class="toggle-row">
           <span>{allowOverlaps ? 'Allowed intentionally' : 'Blocked by default'}</span>
@@ -99,6 +106,7 @@
     </div>
     <div class="actions">
       <button on:click={saveSettings}><Save size={18} /> Save settings</button>
+      <button class="secondary" on:click={() => (timezone = deviceTimezone)}><Globe2 size={18} /> Use device timezone</button>
       <button class="secondary" on:click={enableNotifications}><Bell size={18} /> Enable notifications</button>
     </div>
     <p class="help">

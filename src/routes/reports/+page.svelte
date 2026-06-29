@@ -4,7 +4,7 @@
   import MarkdownText from '$lib/components/MarkdownText.svelte';
   import type { TimeEntry } from '$lib/types';
   import { appState, requestJson, refreshState } from '$lib/client/state';
-  import { formatClock, formatDate, formatDuration } from '$lib/format';
+  import { formatClock, formatDate, formatDuration, localDateInput } from '$lib/format';
 
   let from = '';
   let to = '';
@@ -14,8 +14,8 @@
 
   function query() {
     const params = new URLSearchParams();
-    if (from) params.set('from', new Date(`${from}T00:00`).toISOString());
-    if (to) params.set('to', new Date(`${to}T23:59`).toISOString());
+    if (from) params.set('fromDate', from);
+    if (to) params.set('toDate', to);
     if (profileId) params.set('profileId', profileId);
     if (tag) params.set('tag', tag);
     return params.toString();
@@ -30,8 +30,8 @@
     await refreshState().catch(() => undefined);
     const today = new Date();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    from = monthStart.toISOString().slice(0, 10);
-    to = today.toISOString().slice(0, 10);
+    from = localDateInput(monthStart);
+    to = localDateInput(today);
     await loadEntries().catch(() => undefined);
   });
 

@@ -4,8 +4,10 @@ import {
   addDays,
   localDateKey,
   normalizeTags,
+  normalizeTimeZone,
   nowIso,
   secondsBetween,
+  startOfLocalDate,
   startOfLocalDay,
   startOfLocalMonth,
   startOfLocalWeek,
@@ -141,6 +143,45 @@ function assertNoOverlap(
   if (overlap) throw new AppError('That overlaps an existing entry. Enable overlaps in Settings if this is intentional.');
 }
 
+type EntryFilters = {
+  from?: string | null;
+  to?: string | null;
+  profileId?: number | null;
+  tag?: string | null;
+  limit?: number;
+};
+
+export function entryFiltersFromSearchParams(
+  searchParams: URLSearchParams,
+  limit = 250,
+  db = getDatabase()
+): EntryFilters {
+  const profileId = searchParams.get('profileId');
+  const fromDate = searchParams.get('fromDate');
+  const toDate = searchParams.get('toDate');
+  const zone = getSettings(db).timezone;
+  let from = searchParams.get('from');
+  let to = searchParams.get('to');
+
+  try {
+    if (fromDate) from = startOfLocalDate(fromDate, zone).toISOString();
+    if (toDate) {
+      const nextDay = addDays(startOfLocalDate(toDate, zone), 1, zone);
+      to = new Date(nextDay.getTime() - 1).toISOString();
+    }
+  } catch {
+    throw new AppError('Choose a valid date range.');
+  }
+
+  return {
+    from,
+    to,
+    profileId: profileId ? Number(profileId) : null,
+    tag: searchParams.get('tag'),
+    limit: Number(searchParams.get('limit') || limit)
+  };
+}
+
 export function listProfiles(db = getDatabase()): Profile[] {
   const rows = db
     .prepare('SELECT * FROM profiles ORDER BY archived ASC, name COLLATE NOCASE ASC')
@@ -191,7 +232,7 @@ export function getSettings(db = getDatabase()): Settings {
     reminderTime: values.reminderTime ?? '20:00',
     notificationsEnabled: Boolean(values.notificationsEnabled),
     allowOverlaps: Boolean(values.allowOverlaps),
-    timezone: values.timezone ?? 'UTC',
+    timezone: normalizeTimeZone(values.timezone),
     firstRunComplete: Boolean(values.firstRunComplete)
   };
 }
@@ -206,7 +247,10 @@ export function updateSettings(input: Partial<Settings>, db = getDatabase()): Se
   `);
   const tx = db.transaction(() => {
     for (const key of allowed) {
-      if (input[key] !== undefined) upsert.run(key, jsonResponseValue(input[key]), now);
+      if (input[key] !== undefined) {
+        const value = key === 'timezone' ? normalizeTimeZone(input[key]) : input[key];
+        upsert.run(key, jsonResponseValue(value), now);
+      }
     }
   });
   tx();
@@ -330,7 +374,7 @@ export function getEntry(id: number, db = getDatabase()): TimeEntry | null {
 }
 
 export function listEntries(
-  filters: { from?: string | null; to?: string | null; profileId?: number | null; tag?: string | null; limit?: number } = {},
+  filters: EntryFilters = {},
   db = getDatabase()
 ): TimeEntry[] {
   const where = ['time_entries.deleted_at IS NULL'];
@@ -434,11 +478,12 @@ export function deleteEntry(id: number, db = getDatabase()): void {
   if (result.changes === 0) throw new AppError('Entry not found.', 404);
 }
 
-export function getDashboardStats(db = getDatabase(), now = new Date()): DashboardStats {
-  const today = startOfLocalDay(now);
-  const week = startOfLocalWeek(now);
-  const month = startOfLocalMonth(now);
-  const tomorrow = addDays(today, 1);
+export function getDashboardStats(db = getDatabase(), now = new Date(), timeZone = getSettings(db).timezone): DashboardStats {
+  const zone = normalizeTimeZone(timeZone);
+  const today = startOfLocalDay(now, zone);
+  const week = startOfLocalWeek(now, zone);
+  const month = startOfLocalMonth(now, zone);
+  const tomorrow = addDays(today, 1, zone);
 
   const sumBetween = (from: Date, to?: Date) => {
     const row = db
@@ -467,9 +512,9 @@ export function getDashboardStats(db = getDatabase(), now = new Date()): Dashboa
 
   const calendar: DashboardStats['calendar'] = [];
   for (let i = 27; i >= 0; i -= 1) {
-    const day = addDays(today, -i);
-    const next = addDays(day, 1);
-    calendar.push({ date: localDateKey(day), seconds: sumBetween(day, next) });
+    const day = addDays(today, -i, zone);
+    const next = addDays(day, 1, zone);
+    calendar.push({ date: localDateKey(day, zone), seconds: sumBetween(day, next) });
   }
 
   return {

@@ -5,7 +5,16 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { toCsv, toXlsx } from '../src/lib/server/export';
 import { migrate } from '../src/lib/server/db';
-import { createEntry, getActiveTimer, listEntries, startTimer, stopTimer } from '../src/lib/server/repository';
+import {
+  createEntry,
+  entryFiltersFromSearchParams,
+  getActiveTimer,
+  getDashboardStats,
+  listEntries,
+  startTimer,
+  stopTimer,
+  updateSettings
+} from '../src/lib/server/repository';
 
 let databases: Database.Database[] = [];
 
@@ -67,6 +76,45 @@ describe('entries', () => {
     expect(csv).toContain('Prepared seminar');
     expect(Buffer.isBuffer(xlsx)).toBe(true);
     expect(xlsx.length).toBeGreaterThan(1000);
+  });
+
+  it('uses the configured timezone for dashboard day totals', () => {
+    const db = memoryDb();
+    createEntry(
+      {
+        profileId: 1,
+        startAt: '2026-06-29T22:30:00.000Z',
+        endAt: '2026-06-29T23:30:00.000Z',
+        note: 'Late local work'
+      },
+      db
+    );
+
+    const berlinStats = getDashboardStats(db, new Date('2026-06-30T12:00:00.000Z'), 'Europe/Berlin');
+    const utcStats = getDashboardStats(db, new Date('2026-06-30T12:00:00.000Z'), 'UTC');
+
+    expect(berlinStats.todaySeconds).toBe(3600);
+    expect(utcStats.todaySeconds).toBe(0);
+  });
+
+  it('expands report date filters in the configured timezone', () => {
+    const db = memoryDb();
+    createEntry(
+      {
+        profileId: 1,
+        startAt: '2026-06-29T22:30:00.000Z',
+        endAt: '2026-06-29T23:30:00.000Z',
+        note: 'Late local work'
+      },
+      db
+    );
+    const params = new URLSearchParams({ fromDate: '2026-06-30', toDate: '2026-06-30' });
+
+    updateSettings({ timezone: 'Europe/Berlin' }, db);
+    expect(listEntries(entryFiltersFromSearchParams(params, 250, db), db)).toHaveLength(1);
+
+    updateSettings({ timezone: 'UTC' }, db);
+    expect(listEntries(entryFiltersFromSearchParams(params, 250, db), db)).toHaveLength(0);
   });
 });
 
