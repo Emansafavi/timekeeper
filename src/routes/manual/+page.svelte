@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { Pencil, Plus, Save, Trash2, X } from '@lucide/svelte';
+  import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
+  import MarkdownText from '$lib/components/MarkdownText.svelte';
   import type { TimeEntry } from '$lib/types';
   import { appState, mutate, refreshState } from '$lib/client/state';
   import { formatClock, formatDate, formatDuration, isoToLocalInput, localInputToIso } from '$lib/format';
@@ -106,9 +108,7 @@
         <input type="datetime-local" bind:value={endAt} required />
       </label>
     </div>
-    <label>What did you do?
-      <textarea bind:value={note} required placeholder="Short note for the journal"></textarea>
-    </label>
+    <MarkdownEditor bind:value={note} label="What did you do?" required placeholder="Short note for the journal" />
     <div class="actions">
       <button disabled={busy || !profileId || !note.trim()}>
         {#if editing}<Save size={18} /> Update entry{:else}<Plus size={18} /> Add entry{/if}
@@ -135,7 +135,7 @@
               <span class="chip profile-chip"><span class="dot" style={`background:${entry.profileColor}`}></span>{entry.profileName}</span>
               <span class="chip">{formatDate(entry.startAt)} {formatClock(entry.startAt)}-{formatClock(entry.endAt)}</span>
             </div>
-            <h3>{entry.note}</h3>
+            <MarkdownText text={entry.note} />
             {#if entry.tags.length}
               <div class="chip-row tag-row">
                 {#each entry.tags as tag}<span class="chip tag-chip">#{tag}</span>{/each}

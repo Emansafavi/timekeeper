@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import { Pause, Play, RotateCcw, Square } from '@lucide/svelte';
+  import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
   import { apiError, appState, mutate, refreshState } from '$lib/client/state';
   import { formatDuration } from '$lib/format';
 
@@ -9,6 +11,8 @@
   let note = '';
   let busy = false;
   let tick = Date.now();
+  let draftTimerId: number | null = null;
+  let draftReady = false;
 
   $: activeProfiles = $appState?.profiles.filter((profile) => !profile.archived) || [];
   $: if (activeProfiles.length && !activeProfiles.some((profile) => String(profile.id) === profileId)) {
@@ -32,11 +36,41 @@
       : active.elapsedSeconds
     : 0;
 
-  async function run(action: () => Promise<unknown>) {
+  $: if (browser && active?.id && draftTimerId !== active.id) {
+    draftTimerId = active.id;
+    note = window.localStorage.getItem(draftKey(active.id)) || '';
+    draftReady = true;
+  }
+
+  $: if (browser && active?.id && draftReady && draftTimerId === active.id) {
+    if (note) {
+      window.localStorage.setItem(draftKey(active.id), note);
+    } else {
+      window.localStorage.removeItem(draftKey(active.id));
+    }
+  }
+
+  $: if (!active) {
+    draftTimerId = null;
+    draftReady = false;
+  }
+
+  function draftKey(timerId: number) {
+    return `timekeeper:timer-note-draft:${timerId}`;
+  }
+
+  function clearDraft(timerId: number | null | undefined) {
+    if (!browser || !timerId) return;
+    window.localStorage.removeItem(draftKey(timerId));
+  }
+
+  async function run(action: () => Promise<unknown>, options: { clearNote?: boolean; clearDraft?: boolean } = {}) {
     busy = true;
+    const timerId = active?.id;
     try {
       await action();
-      note = '';
+      if (options.clearDraft) clearDraft(timerId);
+      if (options.clearNote) note = '';
     } finally {
       busy = false;
     }
@@ -64,7 +98,7 @@
       {:else}
         <button disabled={busy} on:click={() => run(() => mutate('/api/timer/resume'))}><Play size={18} /> Resume</button>
       {/if}
-      <button class="secondary" disabled={busy} on:click={() => run(() => mutate('/api/timer/stop', { discard: true }))}><RotateCcw size={18} /> Discard</button>
+      <button class="secondary" disabled={busy} on:click={() => run(() => mutate('/api/timer/stop', { discard: true }), { clearNote: true, clearDraft: true })}><RotateCcw size={18} /> Discard</button>
     </div>
   {:else}
     <div class="grid two" style="text-align:left">
@@ -87,11 +121,9 @@
 
 {#if active}
   <section class="panel">
-    <label>What did you do?
-      <textarea bind:value={note} placeholder="Drafted report, fixed issue, practiced piece..."></textarea>
-    </label>
+    <MarkdownEditor bind:value={note} label="What did you do?" placeholder="Drafted report, fixed issue, practiced piece..." />
     <div class="actions" style="margin-top:12px">
-      <button disabled={busy || !note.trim()} on:click={() => run(() => mutate('/api/timer/stop', { note }))}><Square size={18} /> Stop and save</button>
+      <button disabled={busy || !note.trim()} on:click={() => run(() => mutate('/api/timer/stop', { note }), { clearNote: true, clearDraft: true })}><Square size={18} /> Stop and save</button>
     </div>
   </section>
 {/if}

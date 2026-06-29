@@ -415,6 +415,108 @@ select:focus {
   max-width: 100%;
 }
 
+.markdown-field {
+  gap: 8px;
+}
+
+.markdown-editor {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+}
+
+.markdown-editor textarea {
+  min-height: 136px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.markdown-editor textarea:focus {
+  border-color: transparent;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 52%, transparent);
+}
+
+.markdown-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-strong) 86%, var(--bg));
+}
+
+button.icon-button {
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  flex: 0 0 36px;
+}
+
+button.icon-button[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-strong));
+}
+
+.markdown-preview {
+  min-height: 136px;
+  padding: 12px;
+}
+
+.markdown-note {
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.markdown-note > * {
+  margin: 0;
+}
+
+.markdown-note h3,
+.markdown-note h4,
+.markdown-note h5 {
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.markdown-note p,
+.markdown-note li,
+.markdown-note blockquote {
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.markdown-note ul,
+.markdown-note ol {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.markdown-note blockquote {
+  border-left: 3px solid var(--line);
+  padding-left: 10px;
+  color: var(--muted);
+}
+
+.markdown-note a {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.markdown-note pre {
+  margin-top: 2px;
+  padding: 10px;
+}
+
 .entry-list {
   display: grid;
   gap: 10px;
@@ -446,6 +548,10 @@ select:focus {
   font-size: 1rem;
   line-height: 1.35;
   overflow-wrap: anywhere;
+}
+
+.entry-row .markdown-note {
+  margin-top: 4px;
 }
 
 .entry-row p {

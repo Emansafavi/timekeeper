@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { ArrowRight, Play } from '@lucide/svelte';
+  import MarkdownText from '$lib/components/MarkdownText.svelte';
   import { appState, refreshState } from '$lib/client/state';
   import { formatClock, formatDate, formatDuration } from '$lib/format';
 
@@ -109,7 +110,7 @@
               <span class="chip"><span class="dot" style={`background:${entry.profileColor}`}></span>{entry.profileName}</span>
               <span class="chip">{formatDate(entry.startAt)} {formatClock(entry.startAt)}-{formatClock(entry.endAt)}</span>
             </div>
-            <h3>{entry.note}</h3>
+            <MarkdownText text={entry.note} />
             {#if entry.tags.length}
               <p>{entry.tags.map((tag) => `#${tag}`).join(' ')}</p>
             {/if}
