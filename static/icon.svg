@@ -1,12 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="g" x1="80" x2="440" y1="40" y2="460" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#007aff"/>
-      <stop offset="0.45" stop-color="#34c759"/>
-      <stop offset="1" stop-color="#ff2d55"/>
+    <linearGradient id="bg" x1="84" y1="72" x2="430" y2="438" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#19C7A5"/>
+      <stop offset="0.45" stop-color="#2E7BEA"/>
+      <stop offset="1" stop-color="#FF4B3E"/>
     </linearGradient>
+    <linearGradient id="shine" x1="115" y1="72" x2="393" y2="441" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="white" stop-opacity="0.42"/>
+      <stop offset="0.45" stop-color="white" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="40" y="40" width="432" height="432" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000000" flood-opacity="0.32"/>
+    </filter>
   </defs>
-  <rect width="512" height="512" rx="112" fill="#0c0c0f"/>
-  <circle cx="256" cy="256" r="156" fill="none" stroke="url(#g)" stroke-width="34"/>
-  <path d="M256 144v124l82 48" fill="none" stroke="#f7f7f8" stroke-linecap="round" stroke-linejoin="round" stroke-width="34"/>
+
+  <rect x="64" y="64" width="384" height="384" rx="92" fill="#18171E" filter="url(#shadow)"/>
+  <rect x="64" y="64" width="384" height="384" rx="92" fill="url(#bg)"/>
+  <rect x="88" y="88" width="336" height="336" rx="74" fill="url(#shine)"/>
+
+  <circle cx="256" cy="256" r="128" stroke="white" stroke-opacity="0.26" stroke-width="22"/>
+  <circle cx="256" cy="256" r="87" stroke="#15141B" stroke-opacity="0.24" stroke-width="12"/>
+
+  <circle cx="256" cy="256" r="88" fill="#111017" fill-opacity="0.28" stroke="white" stroke-opacity="0.72" stroke-width="18"/>
+  <path d="M256 205V259L296 284" stroke="white" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="12" fill="white"/>
+
+  <circle cx="163" cy="185" r="20" fill="white" fill-opacity="0.94"/>
+  <circle cx="349" cy="327" r="20" fill="white" fill-opacity="0.94"/>
+  <circle cx="349" cy="185" r="12" fill="white" fill-opacity="0.65"/>
+  <path d="M179 197L229 235" stroke="white" stroke-opacity="0.58" stroke-width="10" stroke-linecap="round"/>
+  <path d="M284 278L333 315" stroke="white" stroke-opacity="0.58" stroke-width="10" stroke-linecap="round"/>
+  <path d="M332 193L300 218" stroke="white" stroke-opacity="0.38" stroke-width="8" stroke-linecap="round"/>
 </svg>
