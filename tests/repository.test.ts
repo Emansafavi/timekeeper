@@ -5,7 +5,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { toCsv, toXlsx } from '../src/lib/server/export';
 import { migrate } from '../src/lib/server/db';
-import { createEntry, getActiveTimer, listEntries, startTimer } from '../src/lib/server/repository';
+import { createEntry, getActiveTimer, listEntries, startTimer, stopTimer } from '../src/lib/server/repository';
 
 let databases: Database.Database[] = [];
 
@@ -86,5 +86,25 @@ describe('timer persistence', () => {
 
     expect(timer?.profileName).toBe('Work');
     expect(timer?.tags).toEqual(['research']);
+  });
+
+  it('applies overlap protection when saving a timer', () => {
+    const db = memoryDb();
+    createEntry(
+      {
+        profileId: 1,
+        startAt: '2026-06-29T08:00:00.000Z',
+        endAt: '2026-06-29T09:00:00.000Z',
+        note: 'Existing work'
+      },
+      db
+    );
+    db.prepare(`
+      INSERT INTO active_timer (id, profile_id, status, started_at, paused_at, accumulated_seconds, tags_json, created_at, updated_at)
+      VALUES (1, 1, 'paused', '2026-06-29T08:15:00.000Z', '2026-06-29T08:45:00.000Z', 1800, '[]', '2026-06-29T08:15:00.000Z', '2026-06-29T08:45:00.000Z')
+    `).run();
+
+    expect(() => stopTimer({ note: 'Overlapping timer' }, db)).toThrow(/overlaps/);
+    expect(stopTimer({ note: 'Intentional overlap', allowOverlap: true }, db).durationSeconds).toBeGreaterThan(0);
   });
 });

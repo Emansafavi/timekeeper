@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { handleApiError, readJson } from '$lib/server/http';
-import { discardTimer, stopTimer } from '$lib/server/repository';
+import { discardTimer, getSettings, stopTimer } from '$lib/server/repository';
 
 export async function POST(event) {
   try {
@@ -9,7 +9,7 @@ export async function POST(event) {
       discardTimer();
       return json({ entry: null });
     }
-    return json({ entry: stopTimer({ note: String(body.note || '') }) });
+    return json({ entry: stopTimer({ note: String(body.note || ''), allowOverlap: getSettings().allowOverlaps }) });
   } catch (error) {
     return handleApiError(error);
   }

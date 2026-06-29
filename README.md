@@ -36,7 +36,7 @@ Useful upstream docs:
 - Manual entries with date/time range, duration validation, profile, tags, and note.
 - Edit and delete entries.
 - Duplicate and overlap protection, with configurable overlap allowance.
-- Profiles with color, category, and archive/unarchive.
+- Profiles with editable name, color, category, and archive/unarchive.
 - Dashboard totals for today, this week, and this month.
 - Weekly profile summaries, 28-day calendar overview, and daily journal.
 - Filters by date range, profile, and tag.
@@ -49,7 +49,8 @@ Useful upstream docs:
 
 ```bash
 cd time-traker
-npm install
+npm ci
+npm run doctor
 npm run dev
 ```
 
@@ -58,19 +59,43 @@ Open http://localhost:5173.
 Run verification:
 
 ```bash
+npm run doctor
 npm run check
 npm test
 npm run build
 ```
 
-## Raspberry Pi Deployment
-
-Install Docker and Compose on the Pi, then copy or clone this folder.
+If local development fails on macOS with a `better-sqlite3` `ERR_DLOPEN_FAILED` architecture error, rebuild dependencies with the same Node architecture you use to run the app:
 
 ```bash
-cd time-tracker
-cp .env.example .env
+node -p "process.arch"
+rm -rf node_modules
+npm ci
+```
+
+On Apple Silicon, if you intentionally use native arm64 Node from an arm64 terminal:
+
+```bash
+arch -arm64 npm ci
+```
+
+## Raspberry Pi Deployment
+
+Install Docker and Compose on the Pi, then clone the repository.
+
+```bash
+git clone YOUR_GITHUB_REPO_URL timekeeper
+cd timekeeper
 docker compose up -d --build
+```
+
+Optional: copy `.env.example` to `.env` before starting if you want to change the port, host, database path, or app name.
+
+Check the service:
+
+```bash
+docker compose ps
+docker compose logs -f timekeeper
 ```
 
 Open:
@@ -147,6 +172,8 @@ docker compose up -d
 git pull
 docker compose up -d --build
 ```
+
+The Docker build ignores local `node_modules`, build output, `.env`, and SQLite data, so a Mac development folder cannot accidentally overwrite the Linux/Raspberry Pi dependencies inside the image.
 
 Migrations run automatically when the server starts.
 

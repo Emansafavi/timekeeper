@@ -425,6 +425,10 @@ select:focus {
   line-height: 1.4;
 }
 
+.profile-editor {
+  grid-template-columns: 1fr;
+}
+
 .chip-row {
   display: flex;
   flex-wrap: wrap;

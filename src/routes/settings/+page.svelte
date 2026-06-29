@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Archive, Bell, Plus, RotateCcw, Save } from '@lucide/svelte';
+  import { Archive, Bell, Pencil, Plus, RotateCcw, Save, X } from '@lucide/svelte';
+  import type { Profile } from '$lib/types';
   import { appState, mutate, refreshState } from '$lib/client/state';
 
   let reminderTime = '20:00';
@@ -9,6 +10,10 @@
   let profileName = '';
   let profileColor = '#007aff';
   let profileCategory = '';
+  let editingProfileId: number | null = null;
+  let editProfileName = '';
+  let editProfileColor = '#007aff';
+  let editProfileCategory = '';
   let permission = 'default';
 
   onMount(async () => {
@@ -36,6 +41,35 @@
     await mutate('/api/profiles', { name: profileName, color: profileColor, category: profileCategory });
     profileName = '';
     profileCategory = '';
+  }
+
+  function editProfile(profile: Profile) {
+    editingProfileId = profile.id;
+    editProfileName = profile.name;
+    editProfileColor = profile.color;
+    editProfileCategory = profile.category || '';
+  }
+
+  function cancelEditProfile() {
+    editingProfileId = null;
+    editProfileName = '';
+    editProfileColor = '#007aff';
+    editProfileCategory = '';
+  }
+
+  async function saveProfile(profile: Profile) {
+    await mutate(
+      '/api/profiles',
+      {
+        id: profile.id,
+        name: editProfileName,
+        color: editProfileColor,
+        category: editProfileCategory,
+        archived: profile.archived
+      },
+      'PATCH'
+    );
+    cancelEditProfile();
   }
 </script>
 
@@ -82,22 +116,39 @@
     </form>
     <div class="entry-list">
       {#each $appState?.profiles || [] as profile}
-        <article class="entry-row">
-          <div>
-            <div class="chip-row">
-              <span class="chip"><span class="dot" style={`background:${profile.color}`}></span>{profile.name}</span>
-              {#if profile.category}<span class="chip">{profile.category}</span>{/if}
-              {#if profile.archived}<span class="chip">Archived</span>{/if}
+        {#if editingProfileId === profile.id}
+          <article class="entry-row profile-editor">
+            <div class="grid two">
+              <label>Name <input bind:value={editProfileName} required /></label>
+              <label>Color <input type="color" bind:value={editProfileColor} /></label>
             </div>
-          </div>
-          <button
-            class="secondary"
-            title={profile.archived ? 'Unarchive' : 'Archive'}
-            on:click={() => mutate('/api/profiles', { id: profile.id, archived: !profile.archived }, 'PATCH')}
-          >
-            {#if profile.archived}<RotateCcw size={17} />{:else}<Archive size={17} />{/if}
-          </button>
-        </article>
+            <label>Category <input bind:value={editProfileCategory} placeholder="Work, Study, Personal" /></label>
+            <div class="actions">
+              <button disabled={!editProfileName.trim()} on:click={() => saveProfile(profile)}><Save size={18} /> Save</button>
+              <button type="button" class="secondary" on:click={cancelEditProfile}><X size={18} /> Cancel</button>
+            </div>
+          </article>
+        {:else}
+          <article class="entry-row">
+            <div>
+              <div class="chip-row">
+                <span class="chip"><span class="dot" style={`background:${profile.color}`}></span>{profile.name}</span>
+                {#if profile.category}<span class="chip">{profile.category}</span>{/if}
+                {#if profile.archived}<span class="chip">Archived</span>{/if}
+              </div>
+            </div>
+            <div class="actions">
+              <button class="secondary" title="Edit" on:click={() => editProfile(profile)}><Pencil size={17} /></button>
+              <button
+                class="secondary"
+                title={profile.archived ? 'Unarchive' : 'Archive'}
+                on:click={() => mutate('/api/profiles', { id: profile.id, archived: !profile.archived }, 'PATCH')}
+              >
+                {#if profile.archived}<RotateCcw size={17} />{:else}<Archive size={17} />{/if}
+              </button>
+            </div>
+          </article>
+        {/if}
       {/each}
     </div>
   </div>

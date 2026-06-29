@@ -279,7 +279,7 @@ export function resumeTimer(db = getDatabase()): ActiveTimer {
   return tx();
 }
 
-export function stopTimer(input: { note: string }, db = getDatabase()): TimeEntry {
+export function stopTimer(input: { note: string; allowOverlap?: boolean }, db = getDatabase()): TimeEntry {
   const tx = db.transaction(() => {
     const row = db
       .prepare(`
@@ -299,6 +299,7 @@ export function stopTimer(input: { note: string }, db = getDatabase()): TimeEntr
     const startAt = row.created_at;
     const endAt = now.toISOString();
     assertNoDuplicate(db, { profileId: row.profile_id, startAt, endAt });
+    assertNoOverlap(db, { startAt, endAt }, Boolean(input.allowOverlap));
 
     const result = db
       .prepare(`
