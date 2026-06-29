@@ -1,0 +1,117 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { Archive, Bell, Plus, RotateCcw, Save } from '@lucide/svelte';
+  import { appState, mutate, refreshState } from '$lib/client/state';
+
+  let reminderTime = '20:00';
+  let notificationsEnabled = false;
+  let allowOverlaps = false;
+  let profileName = '';
+  let profileColor = '#007aff';
+  let profileCategory = '';
+  let permission = 'default';
+
+  onMount(async () => {
+    const state = await refreshState().catch(() => null);
+    if (state) {
+      reminderTime = state.settings.reminderTime;
+      notificationsEnabled = state.settings.notificationsEnabled;
+      allowOverlaps = state.settings.allowOverlaps;
+    }
+    if (typeof Notification !== 'undefined') permission = Notification.permission;
+  });
+
+  async function saveSettings() {
+    await mutate('/api/settings', { reminderTime, notificationsEnabled, allowOverlaps, firstRunComplete: true }, 'PATCH');
+  }
+
+  async function enableNotifications() {
+    if (typeof Notification === 'undefined') return;
+    permission = await Notification.requestPermission();
+    notificationsEnabled = permission === 'granted';
+    await saveSettings();
+  }
+
+  async function addProfile() {
+    await mutate('/api/profiles', { name: profileName, color: profileColor, category: profileCategory });
+    profileName = '';
+    profileCategory = '';
+  }
+</script>
+
+<section class="page-header">
+  <div>
+    <h2>Settings</h2>
+    <p>Profiles, reminders, overlaps, and self-hosting notes.</p>
+  </div>
+</section>
+
+<section class="split">
+  <div class="panel grid">
+    <h2 class="section-heading">Daily reminder</h2>
+    <div class="grid two">
+      <label>Reminder time
+        <input type="time" bind:value={reminderTime} />
+      </label>
+      <label>Overlapping entries
+        <span class="toggle-row">
+          <span>{allowOverlaps ? 'Allowed intentionally' : 'Blocked by default'}</span>
+          <input type="checkbox" bind:checked={allowOverlaps} />
+        </span>
+      </label>
+    </div>
+    <div class="actions">
+      <button on:click={saveSettings}><Save size={18} /> Save settings</button>
+      <button class="secondary" on:click={enableNotifications}><Bell size={18} /> Enable notifications</button>
+    </div>
+    <p class="help">
+      Browser notifications work while the installed PWA or a tab is alive. Local-only Tailscale hosting cannot rely on Apple or Google push delivery without adding Web Push keys and external push services, so the app also shows an in-app reminder when today has no entry.
+    </p>
+    <span class="chip">Permission: {permission}</span>
+  </div>
+
+  <div class="panel grid">
+    <h2 class="section-heading">Profiles</h2>
+    <form class="grid" on:submit|preventDefault={addProfile}>
+      <div class="grid two">
+        <label>Name <input bind:value={profileName} placeholder="New profile" required /></label>
+        <label>Color <input type="color" bind:value={profileColor} /></label>
+      </div>
+      <label>Category <input bind:value={profileCategory} placeholder="Work, Study, Art" /></label>
+      <button disabled={!profileName.trim()}><Plus size={18} /> Add profile</button>
+    </form>
+    <div class="entry-list">
+      {#each $appState?.profiles || [] as profile}
+        <article class="entry-row">
+          <div>
+            <div class="chip-row">
+              <span class="chip"><span class="dot" style={`background:${profile.color}`}></span>{profile.name}</span>
+              {#if profile.category}<span class="chip">{profile.category}</span>{/if}
+              {#if profile.archived}<span class="chip">Archived</span>{/if}
+            </div>
+          </div>
+          <button
+            class="secondary"
+            title={profile.archived ? 'Unarchive' : 'Archive'}
+            on:click={() => mutate('/api/profiles', { id: profile.id, archived: !profile.archived }, 'PATCH')}
+          >
+            {#if profile.archived}<RotateCcw size={17} />{:else}<Archive size={17} />{/if}
+          </button>
+        </article>
+      {/each}
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2 class="section-heading">Backup and restore</h2>
+  <p class="help">
+    The database is a single SQLite file at <code>data/timekeeper.sqlite</code> on the host when using Docker Compose. Stop the container before a cold backup, or copy the database plus its <code>-wal</code> and <code>-shm</code> files together while it is running.
+  </p>
+  <pre><code>docker compose stop
+cp data/timekeeper.sqlite backups/timekeeper-$(date +%F).sqlite
+docker compose up -d</code></pre>
+  <p class="help">
+    Restore by stopping the container, replacing <code>data/timekeeper.sqlite</code> with the backup, then starting the container again.
+  </p>
+</section>

@@ -1,0 +1,14 @@
+services:
+  timekeeper:
+    build: .
+    container_name: timekeeper
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      HOST: 0.0.0.0
+      DATABASE_PATH: /app/data/timekeeper.sqlite
+      PUBLIC_APP_NAME: Timekeeper
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
