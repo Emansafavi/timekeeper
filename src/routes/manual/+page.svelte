@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Pencil, Plus, Trash2, X } from '@lucide/svelte';
+  import { Pencil, Plus, Save, Trash2, X } from '@lucide/svelte';
   import type { TimeEntry } from '$lib/types';
   import { appState, mutate, refreshState } from '$lib/client/state';
   import { formatClock, formatDate, formatDuration, isoToLocalInput, localInputToIso } from '$lib/format';
@@ -12,6 +12,11 @@
   let tags = '';
   let editing: TimeEntry | null = null;
   let busy = false;
+
+  $: activeProfiles = $appState?.profiles.filter((profile) => !profile.archived) || [];
+  $: if (activeProfiles.length && !activeProfiles.some((profile) => String(profile.id) === profileId)) {
+    profileId = String(activeProfiles[0].id);
+  }
 
   function resetForm() {
     const end = new Date();
@@ -59,6 +64,17 @@
       busy = false;
     }
   }
+
+  async function deleteEditing() {
+    if (!editing) return;
+    busy = true;
+    try {
+      await mutate(`/api/entries/${editing.id}`, undefined, 'DELETE');
+      resetForm();
+    } finally {
+      busy = false;
+    }
+  }
 </script>
 
 <section class="page-header">
@@ -69,12 +85,12 @@
 </section>
 
 <section class="split">
-  <form class="panel grid" on:submit|preventDefault={save}>
-    <div class="grid two">
+  <form class="panel grid manual-form" on:submit|preventDefault={save}>
+    <div class="grid two compact-fields">
       <label>Profile
         <select bind:value={profileId}>
-          {#each $appState?.profiles.filter((profile) => !profile.archived) || [] as profile}
-            <option value={profile.id}>{profile.name}</option>
+          {#each activeProfiles as profile}
+            <option value={String(profile.id)}>{profile.name}</option>
           {/each}
         </select>
       </label>
@@ -82,7 +98,7 @@
         <input bind:value={tags} placeholder="comma separated" />
       </label>
     </div>
-    <div class="grid two">
+    <div class="grid two datetime-fields">
       <label>Start
         <input type="datetime-local" bind:value={startAt} required />
       </label>
@@ -94,8 +110,13 @@
       <textarea bind:value={note} required placeholder="Short note for the journal"></textarea>
     </label>
     <div class="actions">
-      <button disabled={busy || !profileId || !note.trim()}><Plus size={18} /> {editing ? 'Update entry' : 'Add entry'}</button>
-      {#if editing}<button type="button" class="secondary" on:click={resetForm}><X size={18} /> Cancel</button>{/if}
+      <button disabled={busy || !profileId || !note.trim()}>
+        {#if editing}<Save size={18} /> Update entry{:else}<Plus size={18} /> Add entry{/if}
+      </button>
+      {#if editing}
+        <button type="button" class="danger" disabled={busy} on:click={deleteEditing}><Trash2 size={18} /> Delete</button>
+        <button type="button" class="secondary" disabled={busy} on:click={resetForm}><X size={18} /> Cancel</button>
+      {/if}
     </div>
   </form>
 
@@ -111,15 +132,19 @@
         <article class="entry-row">
           <div>
             <div class="chip-row">
-              <span class="chip"><span class="dot" style={`background:${entry.profileColor}`}></span>{entry.profileName}</span>
+              <span class="chip profile-chip"><span class="dot" style={`background:${entry.profileColor}`}></span>{entry.profileName}</span>
               <span class="chip">{formatDate(entry.startAt)} {formatClock(entry.startAt)}-{formatClock(entry.endAt)}</span>
             </div>
             <h3>{entry.note}</h3>
+            {#if entry.tags.length}
+              <div class="chip-row tag-row">
+                {#each entry.tags as tag}<span class="chip tag-chip">#{tag}</span>{/each}
+              </div>
+            {/if}
             <p>{formatDuration(entry.durationSeconds)}</p>
           </div>
           <div class="actions">
             <button class="secondary" title="Edit" on:click={() => edit(entry)}><Pencil size={17} /></button>
-            <button class="danger" title="Delete" on:click={() => mutate(`/api/entries/${entry.id}`, undefined, 'DELETE')}><Trash2 size={17} /></button>
           </div>
         </article>
       {:else}

@@ -10,6 +10,11 @@
   let busy = false;
   let tick = Date.now();
 
+  $: activeProfiles = $appState?.profiles.filter((profile) => !profile.archived) || [];
+  $: if (activeProfiles.length && !activeProfiles.some((profile) => String(profile.id) === profileId)) {
+    profileId = String(activeProfiles[0].id);
+  }
+
   onMount(() => {
     refreshState()
       .then((state) => {
@@ -65,8 +70,8 @@
     <div class="grid two" style="text-align:left">
       <label>Profile
         <select bind:value={profileId}>
-          {#each $appState?.profiles.filter((profile) => !profile.archived) || [] as profile}
-            <option value={profile.id}>{profile.name}</option>
+          {#each activeProfiles as profile}
+            <option value={String(profile.id)}>{profile.name}</option>
           {/each}
         </select>
       </label>

@@ -16,6 +16,9 @@
   let editProfileCategory = '';
   let permission = 'default';
 
+  $: activeProfiles = $appState?.profiles.filter((profile) => !profile.archived) || [];
+  $: archivedProfiles = $appState?.profiles.filter((profile) => profile.archived) || [];
+
   onMount(async () => {
     const state = await refreshState().catch(() => null);
     if (state) {
@@ -115,7 +118,7 @@
       <button disabled={!profileName.trim()}><Plus size={18} /> Add profile</button>
     </form>
     <div class="entry-list">
-      {#each $appState?.profiles || [] as profile}
+      {#each activeProfiles as profile}
         {#if editingProfileId === profile.id}
           <article class="entry-row profile-editor">
             <div class="grid two">
@@ -134,7 +137,6 @@
               <div class="chip-row">
                 <span class="chip"><span class="dot" style={`background:${profile.color}`}></span>{profile.name}</span>
                 {#if profile.category}<span class="chip">{profile.category}</span>{/if}
-                {#if profile.archived}<span class="chip">Archived</span>{/if}
               </div>
             </div>
             <div class="actions">
@@ -150,6 +152,47 @@
           </article>
         {/if}
       {/each}
+      {#if archivedProfiles.length}
+        <details class="archive-menu">
+          <summary>Archive <span class="chip">{archivedProfiles.length}</span></summary>
+          <div class="entry-list">
+            {#each archivedProfiles as profile}
+              {#if editingProfileId === profile.id}
+                <article class="entry-row profile-editor">
+                  <div class="grid two">
+                    <label>Name <input bind:value={editProfileName} required /></label>
+                    <label>Color <input type="color" bind:value={editProfileColor} /></label>
+                  </div>
+                  <label>Category <input bind:value={editProfileCategory} placeholder="Work, Study, Personal" /></label>
+                  <div class="actions">
+                    <button disabled={!editProfileName.trim()} on:click={() => saveProfile(profile)}><Save size={18} /> Save</button>
+                    <button type="button" class="secondary" on:click={cancelEditProfile}><X size={18} /> Cancel</button>
+                  </div>
+                </article>
+              {:else}
+                <article class="entry-row">
+                  <div>
+                    <div class="chip-row">
+                      <span class="chip"><span class="dot" style={`background:${profile.color}`}></span>{profile.name}</span>
+                      {#if profile.category}<span class="chip">{profile.category}</span>{/if}
+                    </div>
+                  </div>
+                  <div class="actions">
+                    <button class="secondary" title="Edit" on:click={() => editProfile(profile)}><Pencil size={17} /></button>
+                    <button
+                      class="secondary"
+                      title="Unarchive"
+                      on:click={() => mutate('/api/profiles', { id: profile.id, archived: false }, 'PATCH')}
+                    >
+                      <RotateCcw size={17} />
+                    </button>
+                  </div>
+                </article>
+              {/if}
+            {/each}
+          </div>
+        </details>
+      {/if}
     </div>
   </div>
 </section>

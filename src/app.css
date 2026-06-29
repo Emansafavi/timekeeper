@@ -153,6 +153,7 @@ input,
 textarea,
 select {
   width: 100%;
+  min-width: 0;
   min-height: var(--tap);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -160,6 +161,12 @@ select {
   background: var(--surface-strong);
   color: var(--text);
   outline: none;
+}
+
+input[type='datetime-local'] {
+  font-size: 0.94rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 input[type='color'] {
@@ -396,6 +403,18 @@ select:focus {
   justify-content: center;
 }
 
+.manual-form {
+  align-content: start;
+}
+
+.manual-form .datetime-fields {
+  grid-template-columns: 1fr;
+}
+
+.manual-form .datetime-fields input {
+  max-width: 100%;
+}
+
 .entry-list {
   display: grid;
   gap: 10px;
@@ -410,6 +429,16 @@ select:focus {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface-strong);
+}
+
+.entry-row > .actions {
+  justify-content: flex-end;
+}
+
+.entry-row > .actions button {
+  width: 48px;
+  padding: 0;
+  flex: 0 0 48px;
 }
 
 .entry-row h3 {
@@ -449,7 +478,22 @@ select:focus {
   font-size: 0.82rem;
   font-weight: 700;
   max-width: 100%;
+  line-height: 1.2;
   overflow-wrap: anywhere;
+}
+
+.profile-chip {
+  color: var(--text);
+}
+
+.tag-row {
+  margin-top: 8px;
+}
+
+.tag-chip {
+  min-height: 28px;
+  color: color-mix(in srgb, var(--accent) 74%, var(--text));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-strong));
 }
 
 .dot {
@@ -512,6 +556,33 @@ select:focus {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
   gap: 18px;
+}
+
+.archive-menu {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface-strong) 72%, transparent);
+  padding: 10px;
+}
+
+.archive-menu summary {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.archive-menu[open] summary {
+  margin-bottom: 10px;
+  color: var(--text);
+}
+
+.archive-menu:not([open]) > .entry-list {
+  display: none;
 }
 
 .help {
@@ -598,6 +669,10 @@ pre code {
   .actions button,
   .actions .button {
     flex: 1 1 auto;
+  }
+
+  .entry-row > .actions button {
+    flex: 0 0 48px;
   }
 }
 

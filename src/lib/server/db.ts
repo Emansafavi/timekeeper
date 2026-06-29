@@ -58,11 +58,7 @@ export function seedDefaults(database = getDatabase()): void {
       VALUES (@name, @color, @category, 0, @now, @now)
     `);
     const now = new Date().toISOString();
-    [
-      { name: 'Work', color: '#2563eb', category: null },
-      { name: 'Study', color: '#0f766e', category: null },
-      { name: 'Personal', color: '#c2410c', category: null }
-    ].forEach((profile) => insert.run({ ...profile, now }));
+    [{ name: 'Work', color: '#2563eb', category: null }].forEach((profile) => insert.run({ ...profile, now }));
   }
 
   const setDefault = database.prepare(`

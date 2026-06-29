@@ -62,7 +62,7 @@
       <select bind:value={profileId}>
         <option value="">All profiles</option>
         {#each $appState?.profiles || [] as profile}
-          <option value={profile.id}>{profile.name}</option>
+          <option value={String(profile.id)}>{profile.name}</option>
         {/each}
       </select>
     </label>
@@ -117,7 +117,11 @@
               <span class="chip">{formatDate(entry.startAt)} {formatClock(entry.startAt)}-{formatClock(entry.endAt)}</span>
             </div>
             <h3>{entry.note}</h3>
-            {#if entry.tags.length}<p>{entry.tags.map((item) => `#${item}`).join(' ')}</p>{/if}
+            {#if entry.tags.length}
+              <div class="chip-row tag-row">
+                {#each entry.tags as item}<span class="chip tag-chip">#{item}</span>{/each}
+              </div>
+            {/if}
           </div>
           <strong>{formatDuration(entry.durationSeconds)}</strong>
         </article>

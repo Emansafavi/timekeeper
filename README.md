@@ -42,7 +42,7 @@ Useful upstream docs:
 - Filters by date range, profile, and tag.
 - CSV and XLSX exports.
 - Browser/PWA reminders plus an in-app reminder banner.
-- SQLite migrations and neutral starter profiles.
+- SQLite migrations and a single neutral `Work` starter profile.
 - Tests for time math, overlaps, exports, and timer persistence.
 
 ## Local Development
