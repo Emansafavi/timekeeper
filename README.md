@@ -1,71 +1,125 @@
 # Timekeeper
 
-A self-hosted, iPhone-friendly Progressive Web App for tracking work time across local profiles.
+Timekeeper is a local-first, self-hosted time tracking app. It runs on your own computer or server, stores your data in a local SQLite database, and gives you a mobile-friendly web app for logging work from a browser or installed PWA.
 
-Timekeeper is designed for a Raspberry Pi on a private Tailscale network. It uses a single SQLite database file, a small Node/SvelteKit server, Docker Compose, and no public cloud services.
+It is designed for personal use, small private teams, and home-lab setups where the data should stay on hardware you control.
 
-## Stack Choice
-
-Recommended and implemented stack:
-
-- **SvelteKit + adapter-node**: one compact full-stack app with server endpoints, responsive UI, and a production Node build. SvelteKit's Node adapter creates a standalone server that runs with `node build`.
-- **SQLite + better-sqlite3**: low-maintenance local database, WAL mode, transactions, simple file backups, and good Raspberry Pi performance.
-- **Docker Compose**: repeatable Pi deployment with a bind-mounted `data/` folder.
-- **Plain Svelte/CSS UI**: no heavy component framework; fast, touch-friendly, dark/light mode, bottom navigation on mobile.
-- **Service worker + manifest**: installable Safari PWA with cached app shell. API writes still require network access to the Pi.
-- **CSV + minimal XLSX writer**: Excel/Google Sheets compatible exports without a large spreadsheet parser dependency.
-
-Tradeoffs:
-
-- SvelteKit is lighter than a separate Next.js + Fastify split and easier to deploy as one service.
-- SQLite is the simplest reliable persistence choice for one trusted user or a small private network. PostgreSQL would add maintenance without much benefit here.
-- Local browser notifications are implemented while the PWA/tab is alive. Reliable background push on iOS/Android normally uses Web Push infrastructure and platform push services, which does not fit a purely local-only Tailscale app.
-- Multi-user auth is intentionally not included. Put the app behind Tailscale and add auth later only if you expose it beyond trusted devices.
-
-Useful upstream docs:
-
-- SvelteKit Node adapter: https://svelte.dev/docs/kit/adapter-node
-- SvelteKit service workers: https://svelte.dev/docs/kit/service-workers
-- better-sqlite3: https://github.com/WiseLibs/better-sqlite3
-
-## Features
+## What It Does
 
 - Start, pause, resume, discard, and stop timers.
-- Required stop note: “What did you do?”
-- Persistent active timer state across refreshes and server restarts.
-- Manual entries with date/time range, duration validation, profile, tags, and note.
-- Edit and delete entries.
-- Duplicate and overlap protection, with configurable overlap allowance.
-- Profiles with editable name, color, category, and archive/unarchive.
-- Dashboard totals for today, this week, and this month.
-- Weekly profile summaries, 28-day calendar overview, and daily journal.
-- Filters by date range, profile, and tag.
-- CSV and XLSX exports.
-- Browser/PWA reminders plus an in-app reminder banner.
-- SQLite migrations and a single neutral `Work` starter profile.
-- Tests for time math, overlaps, exports, and timer persistence.
+- Add manual time entries when the timer was not running.
+- Require a short note for saved work.
+- Track work by profile/project.
+- Add tags to timers and manual entries.
+- Edit entries and soft-delete entries.
+- Archive profiles without deleting their historical data.
+- Block overlapping entries by default, with an option to allow them.
+- Show dashboard totals for today, this week, and this month.
+- Show a weekly profile summary, 28-day activity view, and recent journal.
+- Filter reports by date range, profile, and tag.
+- Export reports as CSV or XLSX.
+- Install to a phone home screen as a PWA.
 
-## Local Development
+## How Data Is Stored
+
+Timekeeper stores app data in a local SQLite database:
+
+```text
+data/timekeeper.sqlite
+```
+
+When SQLite uses WAL mode, you may also see:
+
+```text
+data/timekeeper.sqlite-wal
+data/timekeeper.sqlite-shm
+```
+
+Keep these files together when backing up a running app. The `data/` folder is ignored by Git so your entries, tags, categories, profiles, settings, and backups are not pushed to GitHub.
+
+## Install On A Server With Docker
+
+This is the recommended setup for a Raspberry Pi, Linux server, home server, or NAS that supports Docker.
+
+Requirements:
+
+- Git
+- Docker
+- Docker Compose
+
+Install:
 
 ```bash
-cd time-traker
+git clone YOUR_REPOSITORY_URL timekeeper
+cd timekeeper
+docker compose up -d --build
+```
+
+Open:
+
+```text
+http://SERVER_IP:3000
+```
+
+Useful commands:
+
+```bash
+docker compose ps
+docker compose logs -f timekeeper
+docker compose restart
+docker compose down
+```
+
+Optional configuration:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` if you want to change the port, host, database path, or app name.
+
+## Raspberry Pi 5
+
+On a Raspberry Pi 5, install Docker and Docker Compose, then use the same Docker setup:
+
+```bash
+git clone YOUR_REPOSITORY_URL timekeeper
+cd timekeeper
+docker compose up -d --build
+```
+
+The app stores its database on the Pi in:
+
+```text
+./data/timekeeper.sqlite
+```
+
+If you use [Tailscale](https://tailscale.com/), you can keep Timekeeper private while still reaching it from your phone, laptop, or tablet. This fits the local-first goal: the app and database stay on your own device, while Tailscale provides private network access between your devices.
+
+## Install On macOS
+
+Requirements:
+
+- Node.js 22 or newer
+- Git
+
+Run:
+
+```bash
+git clone YOUR_REPOSITORY_URL timekeeper
+cd timekeeper
 npm ci
 npm run doctor
 npm run dev
 ```
 
-Open http://localhost:5173.
+Open:
 
-Run verification:
-
-```bash
-npm run doctor
-npm run check
-npm test
-npm run build
+```text
+http://localhost:5173
 ```
 
-If local development fails on macOS with a `better-sqlite3` `ERR_DLOPEN_FAILED` architecture error, rebuild dependencies with the same Node architecture you use to run the app:
+If `better-sqlite3` fails to load because of an architecture mismatch, rebuild dependencies with the same Node architecture you use to run the app:
 
 ```bash
 node -p "process.arch"
@@ -73,72 +127,72 @@ rm -rf node_modules
 npm ci
 ```
 
-On Apple Silicon, if you intentionally use native arm64 Node from an arm64 terminal:
+On Apple Silicon with native arm64 Node:
 
 ```bash
 arch -arm64 npm ci
 ```
 
-## Raspberry Pi Deployment
+## Install On Linux
 
-Install Docker and Compose on the Pi, then clone the repository.
+For production use, prefer Docker.
+
+For local development:
 
 ```bash
-git clone YOUR_GITHUB_REPO_URL timekeeper
+git clone YOUR_REPOSITORY_URL timekeeper
 cd timekeeper
-docker compose up -d --build
-```
-
-Optional: copy `.env.example` to `.env` before starting if you want to change the port, host, database path, or app name.
-
-Check the service:
-
-```bash
-docker compose ps
-docker compose logs -f timekeeper
+npm ci
+npm run doctor
+npm run dev
 ```
 
 Open:
 
 ```text
-http://RASPBERRY_PI_TAILSCALE_NAME:3000
+http://localhost:5173
 ```
 
-or:
+## Install On Windows
+
+Recommended options:
+
+- Use Docker Desktop and the Docker setup above.
+- Or use WSL2 with Ubuntu, then follow the Linux instructions.
+
+With WSL2:
+
+```bash
+git clone YOUR_REPOSITORY_URL timekeeper
+cd timekeeper
+npm ci
+npm run doctor
+npm run dev
+```
+
+Open the local URL shown by Vite, usually:
 
 ```text
-http://RASPBERRY_PI_TAILSCALE_IP:3000
+http://localhost:5173
 ```
 
-In Safari on iPhone, open the Tailscale URL, tap Share, then “Add to Home Screen”.
+## Install On A Phone
 
-## Tailscale Notes
+Timekeeper is a Progressive Web App.
 
-This app is intended to stay private:
+On iPhone:
 
-1. Install and authenticate Tailscale on the Raspberry Pi.
-2. Install and authenticate Tailscale on your iPhone, tablet, and laptop.
-3. Keep `docker-compose.yml` bound to port `3000`.
-4. Access the app via the Pi’s MagicDNS name or Tailscale IP.
+1. Open Timekeeper in Safari.
+2. Tap Share.
+3. Tap Add to Home Screen.
 
-No public reverse proxy is required.
+On Android:
 
-## Environment Variables
+1. Open Timekeeper in Chrome.
+2. Tap the menu.
+3. Tap Install app or Add to Home screen.
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `PORT` | `3000` | HTTP port inside the container |
-| `HOST` | `0.0.0.0` | Listen address |
-| `DATABASE_PATH` | `/app/data/timekeeper.sqlite` | SQLite file path |
-| `PUBLIC_APP_NAME` | `Timekeeper` | Public app name |
-
-## Data and Backups
-
-Docker Compose stores the database in:
-
-```text
-./data/timekeeper.sqlite
-```
+## Backups
 
 Cold backup:
 
@@ -149,14 +203,12 @@ cp data/timekeeper.sqlite backups/timekeeper-$(date +%F).sqlite
 docker compose up -d
 ```
 
-Hot backup while running:
+Hot backup while the app is running:
 
 ```bash
 mkdir -p backups
 cp data/timekeeper.sqlite* backups/
 ```
-
-When the app is running in WAL mode, copy `timekeeper.sqlite`, `timekeeper.sqlite-wal`, and `timekeeper.sqlite-shm` together.
 
 Restore:
 
@@ -173,79 +225,28 @@ git pull
 docker compose up -d --build
 ```
 
-The Docker build ignores local `node_modules`, build output, `.env`, and SQLite data, so a Mac development folder cannot accidentally overwrite the Linux/Raspberry Pi dependencies inside the image.
+Database migrations run automatically when the server starts.
 
-Migrations run automatically when the server starts.
-
-## Seed Demo Data
-
-Start the app once so migrations create the schema, then:
+## Development Checks
 
 ```bash
-npm run seed
+npm run doctor
+npm run check
+npm test
+npm run build
 ```
 
-For Docker:
+## Security Note
 
-```bash
-docker compose exec timekeeper node scripts/seed.js
-```
+Timekeeper currently assumes a trusted private network. Do not expose it directly to the public internet without adding authentication and HTTPS.
 
-## Database Schema
+Recommended private setup:
 
-Core tables:
+- Run it on your own server or Raspberry Pi.
+- Keep the service behind your LAN or [Tailscale](https://tailscale.com/).
+- Back up the `data/` folder.
+- Do not commit SQLite database files.
 
-- `schema_migrations`: applied migration versions.
-- `profiles`: profile/project names, color, category, archived state.
-- `time_entries`: immutable-ish work logs with soft delete, timestamps, duration, tags, profile, note, and source.
-- `active_timer`: one active timer row with status, original creation time, active segment start, accumulated active seconds, and tags.
-- `settings`: JSON values for reminders, overlap behavior, timezone, and onboarding state.
+## License
 
-All writes that affect timers and entries use SQLite transactions.
-
-## Git Data Boundary
-
-The repository is meant to hold the barebones app, not user input. Local SQLite files under `data/`, exported backups, tags, categories, profiles, timers, and time entries are ignored by Git. The committed `data/.gitkeep` file only preserves the folder for first run.
-
-## Notifications
-
-Settings lets you choose a daily reminder time and request browser notification permission. The reminder is scheduled in the browser while the PWA/tab is active. If the device or browser suspends the app, notification delivery is not guaranteed.
-
-The dashboard always shows an in-app reminder banner when today has no entry and no timer is running.
-
-## Security
-
-Timekeeper assumes a trusted private network. Recommended baseline:
-
-- Keep it behind Tailscale.
-- Do not expose port `3000` publicly.
-- Keep the Pi updated.
-- Back up `data/timekeeper.sqlite`.
-
-Future auth options: local password, Tailscale identity headers behind a reverse proxy, or OAuth if exposed beyond Tailscale.
-
-## Future Mobile Path
-
-For App Store or Play Store release, the simplest path is a Capacitor wrapper around the SvelteKit frontend plus a sync/auth backend. You would need:
-
-- Native notification scheduling.
-- Local encrypted storage.
-- User accounts and sync conflict handling.
-- App store icons/screenshots/privacy disclosures.
-- A hosted backend or explicit LAN-only mobile mode.
-
-React Native would only be worth it if the UI needed deep native integrations that a PWA/Capacitor shell cannot provide.
-
-## Maintenance Notes
-
-`npm audit --omit=dev` currently reports a low-severity advisory through SvelteKit's `cookie` dependency. The suggested forced fix downgrades SvelteKit to an unusable pre-release, so this should be resolved by normal framework updates rather than `npm audit fix --force`.
-
-## Contributing
-
-This project is GitHub-ready:
-
-1. Keep changes small and covered by focused tests.
-2. Run `npm run check`, `npm test`, and `npm run build`.
-3. Avoid adding dependencies unless they reduce real maintenance or reliability risk.
-
-Suggested license: MIT, included in `LICENSE`.
+MIT. See `LICENSE`.
